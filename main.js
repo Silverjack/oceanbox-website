@@ -1,0 +1,238 @@
+const menuBtn = document.querySelector(".menu-btn");
+const topNav = document.querySelector(".top-nav");
+const captchaRuntime = document.querySelector("#captcha-runtime");
+const isLocalDevHost = (() => {
+  const host = window.location.hostname;
+  return (
+    window.location.protocol === "file:" ||
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host === "::1"
+  );
+})();
+
+window.onTurnstileSuccess = () => {
+  if (!captchaRuntime) return;
+  captchaRuntime.textContent = "Verification completed.";
+  captchaRuntime.className = "captcha-runtime ok";
+};
+
+window.onTurnstileError = (errorCode) => {
+  if (!captchaRuntime) return;
+  const host = window.location.hostname || "(unknown-host)";
+  captchaRuntime.textContent =
+    `Verification failed to load (code: ${errorCode || "unknown"}). Host: ${host}. Check Turnstile hostname allowlist or network access.`;
+  captchaRuntime.className = "captcha-runtime error";
+};
+
+window.onTurnstileExpired = () => {
+  if (!captchaRuntime) return;
+  captchaRuntime.textContent = "Verification expired. Please verify again.";
+  captchaRuntime.className = "captcha-runtime error";
+};
+
+if (menuBtn && topNav) {
+  menuBtn.addEventListener("click", () => {
+    const expanded = menuBtn.getAttribute("aria-expanded") === "true";
+    menuBtn.setAttribute("aria-expanded", String(!expanded));
+    topNav.classList.toggle("open");
+  });
+}
+
+const revealItems = document.querySelectorAll(".reveal");
+
+const revealObserver = new IntersectionObserver(
+  (entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("in");
+        revealObserver.unobserve(entry.target);
+      }
+    });
+  },
+  { threshold: 0.15 }
+);
+
+revealItems.forEach((item) => revealObserver.observe(item));
+
+const countItems = document.querySelectorAll("[data-count]");
+
+const formatCount = (num) => num.toLocaleString("en-US");
+
+const runCount = (el) => {
+  const target = Number(el.getAttribute("data-count"));
+  const duration = 1200;
+  const start = performance.now();
+
+  const frame = (now) => {
+    const progress = Math.min((now - start) / duration, 1);
+    el.textContent = formatCount(Math.floor(progress * target));
+    if (progress < 1) {
+      requestAnimationFrame(frame);
+    } else {
+      el.textContent = formatCount(target);
+    }
+  };
+
+  requestAnimationFrame(frame);
+};
+
+const countObserver = new IntersectionObserver(
+  (entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        runCount(entry.target);
+        countObserver.unobserve(entry.target);
+      }
+    });
+  },
+  { threshold: 0.6 }
+);
+
+countItems.forEach((item) => countObserver.observe(item));
+
+const availabilityForm = document.querySelector("#availability-form");
+if (availabilityForm) {
+  availabilityForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const zipInput = availabilityForm.querySelector('input[name="zip"]');
+    const zip = (zipInput?.value || "").trim();
+    const baseUrl = "https://inventory.oceanbox.cn";
+    const targetUrl = zip
+      ? `${baseUrl}?zip=${encodeURIComponent(zip)}`
+      : baseUrl;
+    window.open(targetUrl, "_blank", "noopener,noreferrer");
+  });
+}
+
+const contactForm = document.querySelector("#contact-form");
+const formStatus = document.querySelector("#form-status");
+const turnstileWidget = document.querySelector("#turnstile-widget");
+
+if (turnstileWidget && captchaRuntime) {
+  if (isLocalDevHost) {
+    captchaRuntime.textContent =
+      "Local development mode: bot verification is bypassed on localhost.";
+    captchaRuntime.className = "captcha-runtime ok";
+    turnstileWidget.style.display = "none";
+  }
+
+  window.setTimeout(() => {
+    if (isLocalDevHost) return;
+    const loaded = !!window.turnstile;
+    if (!loaded) {
+      const host = window.location.hostname || "(unknown-host)";
+      captchaRuntime.textContent =
+        `Verification box did not load on host ${host}. Please check your Turnstile hostname allowlist.`;
+      captchaRuntime.className = "captcha-runtime error";
+    }
+  }, 3000);
+}
+
+if (contactForm && formStatus) {
+  contactForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    formStatus.textContent = "";
+    formStatus.className = "form-status";
+
+    const submitBtn = contactForm.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
+
+    const formData = new FormData(contactForm);
+    const emailValue = String(formData.get("email") || "").trim();
+    const turnstileToken = formData.get("cf-turnstile-response");
+    const siteKey = turnstileWidget?.getAttribute("data-sitekey") || "";
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue)) {
+      formStatus.textContent = "Please provide a valid business email address.";
+      formStatus.classList.add("error");
+      if (submitBtn) submitBtn.disabled = false;
+      return;
+    }
+
+    if (isLocalDevHost) {
+      formData.set("dev_bypass_turnstile", "1");
+    }
+
+    if (!isLocalDevHost && !window.turnstile) {
+      formStatus.textContent =
+        "Bot verification widget did not load. Check Turnstile domain settings and network access.";
+      formStatus.classList.add("error");
+      if (submitBtn) submitBtn.disabled = false;
+      return;
+    }
+
+    if (!isLocalDevHost && (!siteKey || siteKey.includes("YOUR_TURNSTILE_SITE_KEY"))) {
+      formStatus.textContent = "Bot verification is not configured yet. Please set a valid Turnstile site key.";
+      formStatus.classList.add("error");
+      if (submitBtn) submitBtn.disabled = false;
+      return;
+    }
+
+    if (!isLocalDevHost && !turnstileToken) {
+      formStatus.textContent = "Please complete the bot verification before submitting.";
+      formStatus.classList.add("error");
+      if (submitBtn) submitBtn.disabled = false;
+      return;
+    }
+
+    if (isLocalDevHost) {
+      formStatus.textContent =
+        "Local dev mode: inquiry captured successfully. Deploy to Cloudflare Pages to test real email delivery.";
+      formStatus.classList.add("ok");
+      contactForm.reset();
+      if (submitBtn) submitBtn.disabled = false;
+      return;
+    }
+
+    try {
+      let response;
+      try {
+        response = await fetch(contactForm.action, {
+          method: "POST",
+          body: formData,
+        });
+      } catch (networkError) {
+        throw new Error(
+          `Request failed before reaching server: ${String(networkError?.message || networkError)}`
+        );
+      }
+
+      const contentType = response.headers.get("content-type") || "";
+      let result = null;
+      let rawText = "";
+
+      if (contentType.includes("application/json")) {
+        result = await response.json().catch(() => null);
+      } else {
+        rawText = await response.text().catch(() => "");
+      }
+
+      if (!response.ok || !result?.ok) {
+        const detail =
+          result?.message ||
+          rawText.slice(0, 240) ||
+          `HTTP ${response.status}`;
+        throw new Error(detail);
+      }
+
+      formStatus.textContent = result.message || "Inquiry submitted successfully.";
+      formStatus.classList.add("ok");
+      contactForm.reset();
+      if (window.turnstile && typeof window.turnstile.reset === "function") {
+        window.turnstile.reset();
+      }
+    } catch (error) {
+      const errMsg = String(error?.message || "");
+      if (isLocalDevHost && (/load failed/i.test(errMsg) || /failed to fetch/i.test(errMsg))) {
+        formStatus.textContent =
+          "Local network request failed. Deploy to Cloudflare Pages to test real submission.";
+      } else {
+        formStatus.textContent = errMsg || "Submission failed. Please try again.";
+      }
+      formStatus.classList.add("error");
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  });
+}
