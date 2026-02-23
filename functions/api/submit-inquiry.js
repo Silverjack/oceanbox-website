@@ -39,12 +39,17 @@ const readHubspotError = async (resp, fallbackMessage) => {
   }
 };
 
-const readMailgunError = async (resp, fallbackMessage) => {
+const readSendGridError = async (resp, fallbackMessage) => {
   const text = await resp.text().catch(() => "");
   if (!text) return fallbackMessage;
   try {
     const parsed = JSON.parse(text);
-    return parsed?.message || parsed?.error || fallbackMessage;
+    return (
+      parsed?.errors?.[0]?.message ||
+      parsed?.error ||
+      parsed?.message ||
+      fallbackMessage
+    );
   } catch {
     return text || fallbackMessage;
   }
@@ -304,56 +309,52 @@ export async function onRequestPost(context) {
     `Submitted At (UTC): ${new Date().toISOString()}`,
   ].join("\n");
 
-  const mailgunKey = String(env.MAILGUN_API_KEY || "").trim();
-  const mailgunDomain = String(env.MAILGUN_DOMAIN || "").trim();
-  const mailgunApiBase = String(env.MAILGUN_API_BASE || "https://api.mailgun.net").trim();
-  const mailgunFromEmail = String(
-    env.MAILGUN_FROM_EMAIL || `Oceanbox Website <no-reply@${mailgunDomain || "oceanbox.cn"}>`
-  ).trim();
-  const mailgunToEmail = String(env.MAILGUN_TO_EMAIL || "rolly@oceanbox.cn").trim();
+  const sendGridKey = String(env.SENDGRID_API_KEY || "").trim();
+  const sendGridFromEmail = String(env.SENDGRID_FROM_EMAIL || "no-reply@oceanbox.cn").trim();
+  const sendGridFromName = String(env.SENDGRID_FROM_NAME || "Oceanbox Website").trim();
+  const sendGridToEmail = String(env.SENDGRID_TO_EMAIL || "rolly@oceanbox.cn").trim();
 
-  if (!mailgunKey || !mailgunDomain || !mailgunApiBase) {
+  if (!sendGridKey || !sendGridFromEmail || !sendGridToEmail) {
     return jsonResponse(500, {
       ok: false,
       message:
-        "Inquiry saved to HubSpot, but Mailgun is not configured. Set MAILGUN_API_KEY, MAILGUN_DOMAIN, and optional MAILGUN_API_BASE.",
+        "Inquiry saved to HubSpot, but SendGrid is not configured. Set SENDGRID_API_KEY, SENDGRID_FROM_EMAIL, and SENDGRID_TO_EMAIL.",
     });
   }
 
-  const auth = btoa(`api:${mailgunKey}`);
-  const mailgunBody = new URLSearchParams({
-    from: mailgunFromEmail,
-    to: mailgunToEmail,
-    subject: mailSubject,
-    text: textContent,
-    html: htmlContent,
-    "h:Reply-To": email,
+  const sendGridResp = await fetch("https://api.sendgrid.com/v3/mail/send", {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${sendGridKey}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      personalizations: [
+        {
+          to: [{ email: sendGridToEmail }],
+        },
+      ],
+      from: {
+        email: sendGridFromEmail,
+        name: sendGridFromName,
+      },
+      reply_to: { email },
+      subject: mailSubject,
+      content: [
+        { type: "text/plain", value: textContent },
+        { type: "text/html", value: htmlContent },
+      ],
+    }),
   });
 
-  const mailgunResp = await fetch(
-    `${mailgunApiBase.replace(/\/+$/, "")}/v3/${encodeURIComponent(mailgunDomain)}/messages`,
-    {
-      method: "POST",
-      headers: {
-        authorization: `Basic ${auth}`,
-        "content-type": "application/x-www-form-urlencoded",
-      },
-      body: mailgunBody.toString(),
-    }
-  );
-
-  if (!mailgunResp.ok) {
-    const details = await readMailgunError(
-      mailgunResp,
-      "Failed to send Mailgun notification email."
+  if (!sendGridResp.ok) {
+    const details = await readSendGridError(
+      sendGridResp,
+      "Failed to send SendGrid notification email."
     );
-    const extraHint =
-      mailgunResp.status === 403
-        ? " Check MAILGUN_API_BASE (US: https://api.mailgun.net, EU: https://api.eu.mailgun.net), MAILGUN_DOMAIN, and sender domain alignment."
-        : "";
     return jsonResponse(500, {
       ok: false,
-      message: `Inquiry saved to HubSpot, but Mailgun send failed (${mailgunResp.status}): ${details}.${extraHint}`,
+      message: `Inquiry saved to HubSpot, but SendGrid send failed (${sendGridResp.status}): ${details}`,
     });
   }
 
