@@ -306,16 +306,17 @@ export async function onRequestPost(context) {
 
   const mailgunKey = String(env.MAILGUN_API_KEY || "").trim();
   const mailgunDomain = String(env.MAILGUN_DOMAIN || "").trim();
+  const mailgunApiBase = String(env.MAILGUN_API_BASE || "https://api.mailgun.net").trim();
   const mailgunFromEmail = String(
     env.MAILGUN_FROM_EMAIL || `Oceanbox Website <no-reply@${mailgunDomain || "oceanbox.cn"}>`
   ).trim();
   const mailgunToEmail = String(env.MAILGUN_TO_EMAIL || "rolly@oceanbox.cn").trim();
 
-  if (!mailgunKey || !mailgunDomain) {
+  if (!mailgunKey || !mailgunDomain || !mailgunApiBase) {
     return jsonResponse(500, {
       ok: false,
       message:
-        "Inquiry saved to HubSpot, but Mailgun is not configured. Set MAILGUN_API_KEY and MAILGUN_DOMAIN.",
+        "Inquiry saved to HubSpot, but Mailgun is not configured. Set MAILGUN_API_KEY, MAILGUN_DOMAIN, and optional MAILGUN_API_BASE.",
     });
   }
 
@@ -330,7 +331,7 @@ export async function onRequestPost(context) {
   });
 
   const mailgunResp = await fetch(
-    `https://api.mailgun.net/v3/${encodeURIComponent(mailgunDomain)}/messages`,
+    `${mailgunApiBase.replace(/\/+$/, "")}/v3/${encodeURIComponent(mailgunDomain)}/messages`,
     {
       method: "POST",
       headers: {
@@ -346,9 +347,13 @@ export async function onRequestPost(context) {
       mailgunResp,
       "Failed to send Mailgun notification email."
     );
+    const extraHint =
+      mailgunResp.status === 403
+        ? " Check MAILGUN_API_BASE (US: https://api.mailgun.net, EU: https://api.eu.mailgun.net), MAILGUN_DOMAIN, and sender domain alignment."
+        : "";
     return jsonResponse(500, {
       ok: false,
-      message: `Inquiry saved to HubSpot, but Mailgun send failed: ${details}`,
+      message: `Inquiry saved to HubSpot, but Mailgun send failed (${mailgunResp.status}): ${details}.${extraHint}`,
     });
   }
 
