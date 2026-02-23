@@ -229,6 +229,22 @@ h2 {
   color: #ccdaef;
 }
 
+.availability-status {
+  margin: 0.5rem 0 0;
+  min-height: 1.25rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #c9daf8;
+}
+
+.availability-status.ok {
+  color: #8be1bf;
+}
+
+.availability-status.error {
+  color: #ffd7dc;
+}
+
 .btn {
   border: 0;
   border-radius: 11px;

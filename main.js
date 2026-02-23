@@ -103,6 +103,7 @@ countItems.forEach((item) => countObserver.observe(item));
 const availabilityForm = document.querySelector("#availability-form");
 const availabilityInput = document.querySelector("#availability-input");
 const availabilityDataList = document.querySelector("#na-location-list");
+const availabilityStatus = document.querySelector("#availability-status");
 
 const naLocationSuggestions = [
   "Houston, TX",
@@ -157,27 +158,100 @@ if (availabilityInput && availabilityDataList) {
   renderAvailabilitySuggestions("");
   availabilityInput.addEventListener("input", () => {
     renderAvailabilitySuggestions(availabilityInput.value);
+    if (availabilityStatus) {
+      availabilityStatus.textContent = "";
+      availabilityStatus.className = "availability-status";
+    }
   });
 }
 
+const setAvailabilityStatus = (text, type = "") => {
+  if (!availabilityStatus) return;
+  availabilityStatus.textContent = text;
+  availabilityStatus.className = "availability-status";
+  if (type) availabilityStatus.classList.add(type);
+};
+
 if (availabilityForm) {
-  availabilityForm.addEventListener("submit", (event) => {
+  availabilityForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const query = (availabilityInput?.value || "").trim();
-    const baseUrl = "https://inventory.oceanbox.cn";
-    const targetUrl = new URL(baseUrl);
+    const submitBtn = availabilityForm.querySelector('button[type="submit"]');
 
-    if (query) {
-      const isZipLike =
-        /^[0-9A-Za-z][0-9A-Za-z\- ]{2,10}$/.test(query) && /\d/.test(query);
-      if (isZipLike) {
-        targetUrl.searchParams.set("zip", query);
-      } else {
-        targetUrl.searchParams.set("location", query);
-      }
+    setAvailabilityStatus("");
+
+    if (!query) {
+      setAvailabilityStatus("Please enter a city or ZIP code first.", "error");
+      return;
     }
 
-    window.open(targetUrl.toString(), "_blank", "noopener,noreferrer");
+    const isZipLike =
+      /^[0-9A-Za-z][0-9A-Za-z\- ]{2,10}$/.test(query) && /\d/.test(query);
+
+    if (submitBtn) submitBtn.disabled = true;
+
+    if (isLocalDevHost) {
+      const devUrl = new URL("https://inventory.oceanbox.cn");
+      if (isZipLike) devUrl.searchParams.set("zip", query);
+      else devUrl.searchParams.set("location", query);
+      window.open(devUrl.toString(), "_blank", "noopener,noreferrer");
+      setAvailabilityStatus(
+        "Local development mode: skipping live availability verification.",
+        "ok"
+      );
+      if (submitBtn) submitBtn.disabled = false;
+      return;
+    }
+
+    const checkUrl = new URL("/api/check-availability", window.location.origin);
+    if (isZipLike) checkUrl.searchParams.set("zip", query);
+    else checkUrl.searchParams.set("location", query);
+
+    try {
+      const checkResp = await fetch(checkUrl.toString(), {
+        method: "GET",
+        headers: { accept: "application/json" },
+      });
+      const checkJson = await checkResp.json().catch(() => null);
+
+      if (!checkResp.ok || !checkJson?.ok) {
+        throw new Error(
+          String(
+            checkJson?.message ||
+              "Unable to verify inventory right now. Please try again shortly."
+          )
+        );
+      }
+
+      if (!checkJson.available) {
+        setAvailabilityStatus(
+          String(
+            checkJson.message ||
+              "Sorry, we do not have inventory for this location at the moment."
+          ),
+          "error"
+        );
+        return;
+      }
+
+      const targetUrl = String(checkJson.url || "");
+      if (!targetUrl) {
+        throw new Error("Inventory target URL is missing.");
+      }
+
+      window.open(targetUrl, "_blank", "noopener,noreferrer");
+      setAvailabilityStatus("Inventory found. Opening live listings...", "ok");
+    } catch (error) {
+      setAvailabilityStatus(
+        String(
+          error?.message ||
+            "Unable to verify inventory right now. Please try again shortly."
+        ),
+        "error"
+      );
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
   });
 }
 
