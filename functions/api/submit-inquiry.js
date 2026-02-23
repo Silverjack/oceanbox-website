@@ -39,23 +39,12 @@ const readHubspotError = async (resp, fallbackMessage) => {
   }
 };
 
-const readBrevoError = async (resp, fallbackMessage) => {
+const readMailgunError = async (resp, fallbackMessage) => {
   const text = await resp.text().catch(() => "");
   if (!text) return fallbackMessage;
   try {
     const parsed = JSON.parse(text);
-    return parsed?.message || parsed?.code || fallbackMessage;
-  } catch {
-    return text || fallbackMessage;
-  }
-};
-
-const readResendError = async (resp, fallbackMessage) => {
-  const text = await resp.text().catch(() => "");
-  if (!text) return fallbackMessage;
-  try {
-    const parsed = JSON.parse(text);
-    return parsed?.message || parsed?.error?.message || fallbackMessage;
+    return parsed?.message || parsed?.error || fallbackMessage;
   } catch {
     return text || fallbackMessage;
   }
@@ -315,78 +304,52 @@ export async function onRequestPost(context) {
     `Submitted At (UTC): ${new Date().toISOString()}`,
   ].join("\n");
 
-  const resendKey = String(env.RESEND_API_KEY || "").trim();
-  const resendFromEmail = String(
-    env.RESEND_FROM_EMAIL || "Oceanbox Website <no-reply@oceanbox.cn>"
+  const mailgunKey = String(env.MAILGUN_API_KEY || "").trim();
+  const mailgunDomain = String(env.MAILGUN_DOMAIN || "").trim();
+  const mailgunFromEmail = String(
+    env.MAILGUN_FROM_EMAIL || `Oceanbox Website <no-reply@${mailgunDomain || "oceanbox.cn"}>`
   ).trim();
-  const resendToEmail = String(env.RESEND_TO_EMAIL || "rolly@oceanbox.cn").trim();
+  const mailgunToEmail = String(env.MAILGUN_TO_EMAIL || "rolly@oceanbox.cn").trim();
 
-  if (resendKey) {
-    const resendResp = await fetch("https://api.resend.com/emails", {
+  if (!mailgunKey || !mailgunDomain) {
+    return jsonResponse(500, {
+      ok: false,
+      message:
+        "Inquiry saved to HubSpot, but Mailgun is not configured. Set MAILGUN_API_KEY and MAILGUN_DOMAIN.",
+    });
+  }
+
+  const auth = btoa(`api:${mailgunKey}`);
+  const mailgunBody = new URLSearchParams({
+    from: mailgunFromEmail,
+    to: mailgunToEmail,
+    subject: mailSubject,
+    text: textContent,
+    html: htmlContent,
+    "h:Reply-To": email,
+  });
+
+  const mailgunResp = await fetch(
+    `https://api.mailgun.net/v3/${encodeURIComponent(mailgunDomain)}/messages`,
+    {
       method: "POST",
       headers: {
-        authorization: `Bearer ${resendKey}`,
-        "content-type": "application/json",
+        authorization: `Basic ${auth}`,
+        "content-type": "application/x-www-form-urlencoded",
       },
-      body: JSON.stringify({
-        from: resendFromEmail,
-        to: [resendToEmail],
-        reply_to: email,
-        subject: mailSubject,
-        html: htmlContent,
-        text: textContent,
-      }),
+      body: mailgunBody.toString(),
+    }
+  );
+
+  if (!mailgunResp.ok) {
+    const details = await readMailgunError(
+      mailgunResp,
+      "Failed to send Mailgun notification email."
+    );
+    return jsonResponse(500, {
+      ok: false,
+      message: `Inquiry saved to HubSpot, but Mailgun send failed: ${details}`,
     });
-
-    if (!resendResp.ok) {
-      const details = await readResendError(
-        resendResp,
-        "Failed to send Resend notification email."
-      );
-      return jsonResponse(500, {
-        ok: false,
-        message: `Inquiry saved to HubSpot, but Resend send failed: ${details}`,
-      });
-    }
-  } else {
-    const brevoKey = String(env.BREVO_API_KEY || "").trim();
-    const brevoFromEmail = String(env.BREVO_FROM_EMAIL || "no-reply@oceanbox.cn").trim();
-    const brevoToEmail = String(env.BREVO_TO_EMAIL || "rolly@oceanbox.cn").trim();
-
-    if (!brevoKey) {
-      return jsonResponse(500, {
-        ok: false,
-        message:
-          "Inquiry saved to HubSpot, but no email provider is configured. Set RESEND_API_KEY (recommended) or BREVO_API_KEY.",
-      });
-    }
-
-    const brevoResp = await fetch("https://api.brevo.com/v3/smtp/email", {
-      method: "POST",
-      headers: {
-        "api-key": brevoKey,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        sender: { email: brevoFromEmail, name: "Oceanbox Website" },
-        to: [{ email: brevoToEmail }],
-        replyTo: { email },
-        subject: mailSubject,
-        htmlContent,
-        textContent,
-      }),
-    });
-
-    if (!brevoResp.ok) {
-      const details = await readBrevoError(
-        brevoResp,
-        "Failed to send Brevo notification email."
-      );
-      return jsonResponse(500, {
-        ok: false,
-        message: `Inquiry saved to HubSpot, but Brevo send failed: ${details}`,
-      });
-    }
   }
 
   return jsonResponse(200, {
