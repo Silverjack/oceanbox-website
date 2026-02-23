@@ -127,7 +127,7 @@ export async function onRequestGet(context) {
 
   const positiveSignals = hasPositiveStockSignals(html);
   const assumeAvailableWhenUncertain =
-    String(env.INVENTORY_ASSUME_AVAILABLE_WHEN_UNCERTAIN || "1").trim() === "1";
+    String(env.INVENTORY_ASSUME_AVAILABLE_WHEN_UNCERTAIN || "0").trim() === "1";
 
   if (!positiveSignals && !assumeAvailableWhenUncertain) {
     return jsonResponse(200, {
