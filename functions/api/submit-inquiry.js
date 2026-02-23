@@ -12,47 +12,22 @@ const isLocalHost = (host = "") =>
   host.startsWith("127.0.0.1") ||
   host.startsWith("[::1]");
 
-const escapeHtml = (value) =>
-  String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-
-const hubspotRequest = async (token, path, options = {}) =>
-  fetch(`https://api.hubapi.com${path}`, {
-    ...options,
-    headers: {
-      authorization: `Bearer ${token}`,
-      "content-type": "application/json",
-      ...(options.headers || {}),
-    },
-  });
-
-const readHubspotError = async (resp, fallbackMessage) => {
+const readHubspotFormsError = async (resp, fallbackMessage) => {
   const text = await resp.text().catch(() => "");
   if (!text) return fallbackMessage;
   try {
     const parsed = JSON.parse(text);
-    return parsed?.message || parsed?.error || fallbackMessage;
+    return parsed?.message || parsed?.errors?.[0]?.message || fallbackMessage;
   } catch {
     return text || fallbackMessage;
   }
 };
 
-const readSendGridError = async (resp, fallbackMessage) => {
-  const text = await resp.text().catch(() => "");
-  if (!text) return fallbackMessage;
-  try {
-    const parsed = JSON.parse(text);
-    return (
-      parsed?.errors?.[0]?.message ||
-      parsed?.error ||
-      parsed?.message ||
-      fallbackMessage
-    );
-  } catch {
-    return text || fallbackMessage;
-  }
+const getCookieValue = (cookieHeader, key) => {
+  if (!cookieHeader) return "";
+  const parts = cookieHeader.split(";").map((item) => item.trim());
+  const target = parts.find((item) => item.startsWith(`${key}=`));
+  return target ? decodeURIComponent(target.slice(key.length + 1)) : "";
 };
 
 export async function onRequestPost(context) {
@@ -98,7 +73,7 @@ export async function onRequestPost(context) {
 
   const host = new URL(request.url).hostname;
   const localBypass = devBypass && isLocalHost(host);
-  const turnstileSecret = env.TURNSTILE_SECRET_KEY || "";
+  const turnstileSecret = String(env.TURNSTILE_SECRET_KEY || "").trim();
 
   if (!localBypass) {
     if (!turnstileToken) {
@@ -139,222 +114,67 @@ export async function onRequestPost(context) {
     }
   }
 
-  const hubspotToken = String(env.HUBSPOT_PRIVATE_APP_TOKEN || "").trim();
-  if (!hubspotToken) {
-    return jsonResponse(500, {
-      ok: false,
-      message: "HubSpot token is not configured.",
-    });
-  }
+  const portalId = String(env.HUBSPOT_PORTAL_ID || "").trim();
+  const formId = String(env.HUBSPOT_FORM_ID || "").trim();
 
-  if (/\s/.test(hubspotToken)) {
-    return jsonResponse(500, {
-      ok: false,
-      message: "HubSpot token format is invalid (contains whitespace).",
-    });
-  }
-
-  // Search existing contact by email.
-  let searchResp;
-  try {
-    searchResp = await hubspotRequest(
-      hubspotToken,
-      "/crm/v3/objects/contacts/search",
-      {
-        method: "POST",
-        body: JSON.stringify({
-          filterGroups: [
-            {
-              filters: [
-                {
-                  propertyName: "email",
-                  operator: "EQ",
-                  value: email,
-                },
-              ],
-            },
-          ],
-          properties: ["email", "company"],
-          limit: 1,
-        }),
-      }
-    );
-  } catch {
-    return jsonResponse(500, {
-      ok: false,
-      message: "Failed to reach HubSpot API. Check token value and network access.",
-    });
-  }
-
-  if (!searchResp.ok) {
-    const details = await readHubspotError(searchResp, "Failed to access HubSpot.");
-    return jsonResponse(500, {
-      ok: false,
-      message: `HubSpot search failed: ${details}`,
-    });
-  }
-
-  const searchJson = await searchResp.json().catch(() => null);
-  const existingContactId = searchJson?.results?.[0]?.id || null;
-
-  const contactPayload = {
-    properties: {
-      email,
-      company,
-    },
-  };
-
-  let contactResp;
-  try {
-    contactResp = existingContactId
-      ? await hubspotRequest(
-          hubspotToken,
-          `/crm/v3/objects/contacts/${existingContactId}`,
-          {
-            method: "PATCH",
-            body: JSON.stringify(contactPayload),
-          }
-        )
-      : await hubspotRequest(hubspotToken, "/crm/v3/objects/contacts", {
-          method: "POST",
-          body: JSON.stringify(contactPayload),
-        });
-  } catch {
-    return jsonResponse(500, {
-      ok: false,
-      message: "Failed to send contact data to HubSpot.",
-    });
-  }
-
-  if (!contactResp.ok) {
-    const details = await readHubspotError(contactResp, "Failed to save inquiry contact.");
-    return jsonResponse(500, {
-      ok: false,
-      message: `HubSpot contact write failed: ${details}`,
-    });
-  }
-
-  const contactJson = await contactResp.json().catch(() => null);
-  const contactId = existingContactId || contactJson?.id;
-
-  // Create inquiry note in HubSpot and associate it to the contact.
-  const noteBody = [
-    "<p><strong>New inquiry from website</strong></p>",
-    `<p><strong>Company:</strong> ${company}</p>`,
-    `<p><strong>Email:</strong> ${email}</p>`,
-    `<p><strong>Requirement:</strong><br>${escapeHtml(requirement).replace(/\n/g, "<br>")}</p>`,
-    `<p><strong>Submitted At (UTC):</strong> ${new Date().toISOString()}</p>`,
-  ].join("");
-
-  const notePayload = {
-    properties: {
-      hs_timestamp: new Date().toISOString(),
-      hs_note_body: noteBody,
-    },
-  };
-
-  if (contactId) {
-    notePayload.associations = [
-      {
-        to: { id: contactId },
-        types: [
-          {
-            associationCategory: "HUBSPOT_DEFINED",
-            associationTypeId: 202,
-          },
-        ],
-      },
-    ];
-  }
-
-  let noteResp;
-  try {
-    noteResp = await hubspotRequest(hubspotToken, "/crm/v3/objects/notes", {
-      method: "POST",
-      body: JSON.stringify(notePayload),
-    });
-  } catch {
-    return jsonResponse(500, {
-      ok: false,
-      message: "Failed to send inquiry note to HubSpot.",
-    });
-  }
-
-  if (!noteResp.ok) {
-    const details = await readHubspotError(
-      noteResp,
-      "Failed to create inquiry note in HubSpot."
-    );
-    return jsonResponse(500, {
-      ok: false,
-      message: `HubSpot note create failed: ${details}`,
-    });
-  }
-
-  const mailSubject = `New Website Inquiry - ${company}`;
-  const htmlContent = [
-    "<h3>New inquiry from Oceanbox website</h3>",
-    `<p><strong>Company:</strong> ${escapeHtml(company)}</p>`,
-    `<p><strong>Email:</strong> ${escapeHtml(email)}</p>`,
-    `<p><strong>Requirement:</strong><br>${escapeHtml(requirement).replace(/\n/g, "<br>")}</p>`,
-    `<p><strong>Submitted At (UTC):</strong> ${new Date().toISOString()}</p>`,
-  ].join("");
-
-  const textContent = [
-    "New inquiry from Oceanbox website",
-    `Company: ${company}`,
-    `Email: ${email}`,
-    "Requirement:",
-    requirement,
-    `Submitted At (UTC): ${new Date().toISOString()}`,
-  ].join("\n");
-
-  const sendGridKey = String(env.SENDGRID_API_KEY || "").trim();
-  const sendGridFromEmail = String(env.SENDGRID_FROM_EMAIL || "no-reply@oceanbox.cn").trim();
-  const sendGridFromName = String(env.SENDGRID_FROM_NAME || "Oceanbox Website").trim();
-  const sendGridToEmail = String(env.SENDGRID_TO_EMAIL || "rolly@oceanbox.cn").trim();
-
-  if (!sendGridKey || !sendGridFromEmail || !sendGridToEmail) {
+  if (!portalId || !formId) {
     return jsonResponse(500, {
       ok: false,
       message:
-        "Inquiry saved to HubSpot, but SendGrid is not configured. Set SENDGRID_API_KEY, SENDGRID_FROM_EMAIL, and SENDGRID_TO_EMAIL.",
+        "HubSpot Forms is not configured. Please set HUBSPOT_PORTAL_ID and HUBSPOT_FORM_ID.",
     });
   }
 
-  const sendGridResp = await fetch("https://api.sendgrid.com/v3/mail/send", {
+  const fieldCompany = String(env.HUBSPOT_FIELD_COMPANY || "company").trim();
+  const fieldEmail = String(env.HUBSPOT_FIELD_EMAIL || "email").trim();
+  const fieldRequirement = String(env.HUBSPOT_FIELD_REQUIREMENT || "message").trim();
+
+  const referer = request.headers.get("Referer") || "";
+  const origin = request.headers.get("Origin") || "";
+  const cookie = request.headers.get("Cookie") || "";
+  const hutk = getCookieValue(cookie, "hubspotutk");
+
+  const submitPayload = {
+    submittedAt: Date.now().toString(),
+    fields: [
+      { name: fieldEmail, value: email },
+      { name: fieldCompany, value: company },
+      { name: fieldRequirement, value: requirement },
+    ],
+    context: {
+      pageUri: referer || origin || `https://${host}/`,
+      pageName: "Oceanbox Inquiry Form",
+      ...(hutk ? { hutk } : {}),
+    },
+  };
+
+  const hubspotToken = String(env.HUBSPOT_PRIVATE_APP_TOKEN || "").trim();
+  const useSecureEndpoint = !!hubspotToken;
+  const endpoint = useSecureEndpoint
+    ? `https://api.hsforms.com/submissions/v3/integration/secure/submit/${encodeURIComponent(
+        portalId
+      )}/${encodeURIComponent(formId)}`
+    : `https://api.hsforms.com/submissions/v3/integration/submit/${encodeURIComponent(
+        portalId
+      )}/${encodeURIComponent(formId)}`;
+
+  const submitResp = await fetch(endpoint, {
     method: "POST",
     headers: {
-      authorization: `Bearer ${sendGridKey}`,
       "content-type": "application/json",
+      ...(useSecureEndpoint ? { authorization: `Bearer ${hubspotToken}` } : {}),
     },
-    body: JSON.stringify({
-      personalizations: [
-        {
-          to: [{ email: sendGridToEmail }],
-        },
-      ],
-      from: {
-        email: sendGridFromEmail,
-        name: sendGridFromName,
-      },
-      reply_to: { email },
-      subject: mailSubject,
-      content: [
-        { type: "text/plain", value: textContent },
-        { type: "text/html", value: htmlContent },
-      ],
-    }),
+    body: JSON.stringify(submitPayload),
   });
 
-  if (!sendGridResp.ok) {
-    const details = await readSendGridError(
-      sendGridResp,
-      "Failed to send SendGrid notification email."
+  if (!submitResp.ok) {
+    const details = await readHubspotFormsError(
+      submitResp,
+      "Failed to submit form to HubSpot."
     );
     return jsonResponse(500, {
       ok: false,
-      message: `Inquiry saved to HubSpot, but SendGrid send failed (${sendGridResp.status}): ${details}`,
+      message: `HubSpot Forms submit failed (${submitResp.status}): ${details}`,
     });
   }
 
