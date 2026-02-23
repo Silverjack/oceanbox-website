@@ -50,6 +50,17 @@ const readBrevoError = async (resp, fallbackMessage) => {
   }
 };
 
+const readResendError = async (resp, fallbackMessage) => {
+  const text = await resp.text().catch(() => "");
+  if (!text) return fallbackMessage;
+  try {
+    const parsed = JSON.parse(text);
+    return parsed?.message || parsed?.error?.message || fallbackMessage;
+  } catch {
+    return text || fallbackMessage;
+  }
+};
+
 export async function onRequestPost(context) {
   const { request, env } = context;
 
@@ -286,17 +297,6 @@ export async function onRequestPost(context) {
     });
   }
 
-  const brevoKey = String(env.BREVO_API_KEY || "").trim();
-  const brevoFromEmail = String(env.BREVO_FROM_EMAIL || "no-reply@oceanbox.cn").trim();
-  const brevoToEmail = String(env.BREVO_TO_EMAIL || "rolly@oceanbox.cn").trim();
-
-  if (!brevoKey) {
-    return jsonResponse(500, {
-      ok: false,
-      message: "Inquiry saved to HubSpot, but Brevo API key is not configured.",
-    });
-  }
-
   const mailSubject = `New Website Inquiry - ${company}`;
   const htmlContent = [
     "<h3>New inquiry from Oceanbox website</h3>",
@@ -315,31 +315,78 @@ export async function onRequestPost(context) {
     `Submitted At (UTC): ${new Date().toISOString()}`,
   ].join("\n");
 
-  const brevoResp = await fetch("https://api.brevo.com/v3/smtp/email", {
-    method: "POST",
-    headers: {
-      "api-key": brevoKey,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      sender: { email: brevoFromEmail, name: "Oceanbox Website" },
-      to: [{ email: brevoToEmail }],
-      replyTo: { email },
-      subject: mailSubject,
-      htmlContent,
-      textContent,
-    }),
-  });
+  const resendKey = String(env.RESEND_API_KEY || "").trim();
+  const resendFromEmail = String(
+    env.RESEND_FROM_EMAIL || "Oceanbox Website <no-reply@oceanbox.cn>"
+  ).trim();
+  const resendToEmail = String(env.RESEND_TO_EMAIL || "rolly@oceanbox.cn").trim();
 
-  if (!brevoResp.ok) {
-    const details = await readBrevoError(
-      brevoResp,
-      "Failed to send Brevo notification email."
-    );
-    return jsonResponse(500, {
-      ok: false,
-      message: `Inquiry saved to HubSpot, but Brevo send failed: ${details}`,
+  if (resendKey) {
+    const resendResp = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${resendKey}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        from: resendFromEmail,
+        to: [resendToEmail],
+        reply_to: email,
+        subject: mailSubject,
+        html: htmlContent,
+        text: textContent,
+      }),
     });
+
+    if (!resendResp.ok) {
+      const details = await readResendError(
+        resendResp,
+        "Failed to send Resend notification email."
+      );
+      return jsonResponse(500, {
+        ok: false,
+        message: `Inquiry saved to HubSpot, but Resend send failed: ${details}`,
+      });
+    }
+  } else {
+    const brevoKey = String(env.BREVO_API_KEY || "").trim();
+    const brevoFromEmail = String(env.BREVO_FROM_EMAIL || "no-reply@oceanbox.cn").trim();
+    const brevoToEmail = String(env.BREVO_TO_EMAIL || "rolly@oceanbox.cn").trim();
+
+    if (!brevoKey) {
+      return jsonResponse(500, {
+        ok: false,
+        message:
+          "Inquiry saved to HubSpot, but no email provider is configured. Set RESEND_API_KEY (recommended) or BREVO_API_KEY.",
+      });
+    }
+
+    const brevoResp = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "api-key": brevoKey,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        sender: { email: brevoFromEmail, name: "Oceanbox Website" },
+        to: [{ email: brevoToEmail }],
+        replyTo: { email },
+        subject: mailSubject,
+        htmlContent,
+        textContent,
+      }),
+    });
+
+    if (!brevoResp.ok) {
+      const details = await readBrevoError(
+        brevoResp,
+        "Failed to send Brevo notification email."
+      );
+      return jsonResponse(500, {
+        ok: false,
+        message: `Inquiry saved to HubSpot, but Brevo send failed: ${details}`,
+      });
+    }
   }
 
   return jsonResponse(200, {
