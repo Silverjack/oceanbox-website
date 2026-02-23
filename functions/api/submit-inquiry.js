@@ -12,6 +12,12 @@ const isLocalHost = (host = "") =>
   host.startsWith("127.0.0.1") ||
   host.startsWith("[::1]");
 
+const escapeHtml = (value) =>
+  String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
 const hubspotRequest = async (token, path, options = {}) =>
   fetch(`https://api.hubapi.com${path}`, {
     ...options,
@@ -28,6 +34,17 @@ const readHubspotError = async (resp, fallbackMessage) => {
   try {
     const parsed = JSON.parse(text);
     return parsed?.message || parsed?.error || fallbackMessage;
+  } catch {
+    return text || fallbackMessage;
+  }
+};
+
+const readBrevoError = async (resp, fallbackMessage) => {
+  const text = await resp.text().catch(() => "");
+  if (!text) return fallbackMessage;
+  try {
+    const parsed = JSON.parse(text);
+    return parsed?.message || parsed?.code || fallbackMessage;
   } catch {
     return text || fallbackMessage;
   }
@@ -220,11 +237,7 @@ export async function onRequestPost(context) {
     "<p><strong>New inquiry from website</strong></p>",
     `<p><strong>Company:</strong> ${company}</p>`,
     `<p><strong>Email:</strong> ${email}</p>`,
-    `<p><strong>Requirement:</strong><br>${requirement
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/\n/g, "<br>")}</p>`,
+    `<p><strong>Requirement:</strong><br>${escapeHtml(requirement).replace(/\n/g, "<br>")}</p>`,
     `<p><strong>Submitted At (UTC):</strong> ${new Date().toISOString()}</p>`,
   ].join("");
 
@@ -270,6 +283,62 @@ export async function onRequestPost(context) {
     return jsonResponse(500, {
       ok: false,
       message: `HubSpot note create failed: ${details}`,
+    });
+  }
+
+  const brevoKey = String(env.BREVO_API_KEY || "").trim();
+  const brevoFromEmail = String(env.BREVO_FROM_EMAIL || "no-reply@oceanbox.cn").trim();
+  const brevoToEmail = String(env.BREVO_TO_EMAIL || "rolly@oceanbox.cn").trim();
+
+  if (!brevoKey) {
+    return jsonResponse(500, {
+      ok: false,
+      message: "Inquiry saved to HubSpot, but Brevo API key is not configured.",
+    });
+  }
+
+  const mailSubject = `New Website Inquiry - ${company}`;
+  const htmlContent = [
+    "<h3>New inquiry from Oceanbox website</h3>",
+    `<p><strong>Company:</strong> ${escapeHtml(company)}</p>`,
+    `<p><strong>Email:</strong> ${escapeHtml(email)}</p>`,
+    `<p><strong>Requirement:</strong><br>${escapeHtml(requirement).replace(/\n/g, "<br>")}</p>`,
+    `<p><strong>Submitted At (UTC):</strong> ${new Date().toISOString()}</p>`,
+  ].join("");
+
+  const textContent = [
+    "New inquiry from Oceanbox website",
+    `Company: ${company}`,
+    `Email: ${email}`,
+    "Requirement:",
+    requirement,
+    `Submitted At (UTC): ${new Date().toISOString()}`,
+  ].join("\n");
+
+  const brevoResp = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "api-key": brevoKey,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      sender: { email: brevoFromEmail, name: "Oceanbox Website" },
+      to: [{ email: brevoToEmail }],
+      replyTo: { email },
+      subject: mailSubject,
+      htmlContent,
+      textContent,
+    }),
+  });
+
+  if (!brevoResp.ok) {
+    const details = await readBrevoError(
+      brevoResp,
+      "Failed to send Brevo notification email."
+    );
+    return jsonResponse(500, {
+      ok: false,
+      message: `Inquiry saved to HubSpot, but Brevo send failed: ${details}`,
     });
   }
 
