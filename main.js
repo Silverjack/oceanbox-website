@@ -177,6 +177,7 @@ if (availabilityForm) {
     event.preventDefault();
     const query = (availabilityInput?.value || "").trim();
     const submitBtn = availabilityForm.querySelector('button[type="submit"]');
+    let pendingWindow = null;
 
     setAvailabilityStatus("");
 
@@ -189,12 +190,19 @@ if (availabilityForm) {
       /^[0-9A-Za-z][0-9A-Za-z\- ]{2,10}$/.test(query) && /\d/.test(query);
 
     if (submitBtn) submitBtn.disabled = true;
+    pendingWindow = window.open("about:blank", "_blank");
+    if (pendingWindow && pendingWindow.document) {
+      pendingWindow.document.title = "Loading inventory...";
+      pendingWindow.document.body.innerHTML =
+        "<p style='font-family: sans-serif; padding: 24px;'>Loading live inventory...</p>";
+    }
 
     if (isLocalDevHost) {
       const devUrl = new URL("https://inventory.oceanbox.cn");
       if (isZipLike) devUrl.searchParams.set("zip", query);
       else devUrl.searchParams.set("location", query);
-      window.open(devUrl.toString(), "_blank", "noopener,noreferrer");
+      if (pendingWindow) pendingWindow.location.href = devUrl.toString();
+      else window.open(devUrl.toString(), "_blank", "noopener,noreferrer");
       setAvailabilityStatus(
         "Local development mode: skipping live availability verification.",
         "ok"
@@ -224,6 +232,7 @@ if (availabilityForm) {
       }
 
       if (!checkJson.available) {
+        if (pendingWindow) pendingWindow.close();
         setAvailabilityStatus(
           String(
             checkJson.message ||
@@ -236,12 +245,18 @@ if (availabilityForm) {
 
       const targetUrl = String(checkJson.url || "");
       if (!targetUrl) {
+        if (pendingWindow) pendingWindow.close();
         throw new Error("Inventory target URL is missing.");
       }
 
-      window.open(targetUrl, "_blank", "noopener,noreferrer");
+      if (pendingWindow) {
+        pendingWindow.location.href = targetUrl;
+      } else {
+        window.open(targetUrl, "_blank", "noopener,noreferrer");
+      }
       setAvailabilityStatus("Inventory found. Opening live listings...", "ok");
     } catch (error) {
+      if (pendingWindow) pendingWindow.close();
       setAvailabilityStatus(
         String(
           error?.message ||
