@@ -57,20 +57,29 @@ revealItems.forEach((item) => revealObserver.observe(item));
 
 const countItems = document.querySelectorAll("[data-count]");
 
-const formatCount = (num) => num.toLocaleString("en-US");
+const formatCount = (num, decimals = 0) =>
+  Number(num).toLocaleString("en-US", {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
 
 const runCount = (el) => {
-  const target = Number(el.getAttribute("data-count"));
+  const targetRaw = String(el.getAttribute("data-count") || "0");
+  const target = Number(targetRaw);
+  const decimals = (targetRaw.split(".")[1] || "").length;
   const duration = 1200;
   const start = performance.now();
 
   const frame = (now) => {
     const progress = Math.min((now - start) / duration, 1);
-    el.textContent = formatCount(Math.floor(progress * target));
+    let current = progress * target;
+    if (decimals === 0) current = Math.floor(current);
+    else current = Number(current.toFixed(decimals));
+    el.textContent = formatCount(current, decimals);
     if (progress < 1) {
       requestAnimationFrame(frame);
     } else {
-      el.textContent = formatCount(target);
+      el.textContent = formatCount(target, decimals);
     }
   };
 
@@ -92,16 +101,84 @@ const countObserver = new IntersectionObserver(
 countItems.forEach((item) => countObserver.observe(item));
 
 const availabilityForm = document.querySelector("#availability-form");
+const availabilityInput = document.querySelector("#availability-input");
+const availabilityDataList = document.querySelector("#na-location-list");
+
+const naLocationSuggestions = [
+  "Houston, TX",
+  "Dallas, TX",
+  "Chicago, IL",
+  "New York, NY",
+  "Savannah, GA",
+  "Norfolk, VA",
+  "Los Angeles, CA",
+  "Long Beach, CA",
+  "Seattle, WA",
+  "Tacoma, WA",
+  "Oakland, CA",
+  "Miami, FL",
+  "Jacksonville, FL",
+  "Atlanta, GA",
+  "Baltimore, MD",
+  "Memphis, TN",
+  "Kansas City, MO",
+  "Minneapolis, MN",
+  "Detroit, MI",
+  "Cleveland, OH",
+  "Toronto, ON",
+  "Vancouver, BC",
+  "Montreal, QC",
+  "Calgary, AB",
+  "Edmonton, AB",
+  "Winnipeg, MB",
+  "Halifax, NS",
+  "77001",
+  "60601",
+  "10001",
+  "90001",
+  "30301",
+  "33101",
+  "M5H",
+  "V6B",
+];
+
+const renderAvailabilitySuggestions = (keyword = "") => {
+  if (!availabilityDataList) return;
+  const query = keyword.trim().toLowerCase();
+  const filtered = naLocationSuggestions
+    .filter((item) => item.toLowerCase().includes(query))
+    .slice(0, 12);
+  availabilityDataList.innerHTML = filtered
+    .map((item) => `<option value="${item}"></option>`)
+    .join("");
+};
+
+if (availabilityInput && availabilityDataList) {
+  renderAvailabilitySuggestions("");
+  availabilityInput.addEventListener("input", () => {
+    renderAvailabilitySuggestions(availabilityInput.value);
+  });
+}
+
 if (availabilityForm) {
   availabilityForm.addEventListener("submit", (event) => {
     event.preventDefault();
-    const zipInput = availabilityForm.querySelector('input[name="zip"]');
-    const zip = (zipInput?.value || "").trim();
+    const query = (availabilityInput?.value || "").trim();
     const baseUrl = "https://inventory.oceanbox.cn";
-    const targetUrl = zip
-      ? `${baseUrl}?zip=${encodeURIComponent(zip)}`
-      : baseUrl;
-    window.open(targetUrl, "_blank", "noopener,noreferrer");
+    const targetUrl = new URL(baseUrl);
+
+    if (query) {
+      const isZipLike =
+        /^[0-9A-Za-z][0-9A-Za-z\- ]{2,10}$/.test(query) && /\d/.test(query);
+      targetUrl.searchParams.set("q", query);
+      if (isZipLike) {
+        targetUrl.searchParams.set("zip", query);
+      } else {
+        targetUrl.searchParams.set("location", query);
+      }
+    }
+
+    window.open(targetUrl.toString(), "_blank", "noopener,noreferrer");
   });
 }
 

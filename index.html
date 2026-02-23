@@ -59,19 +59,21 @@
             <a class="btn btn-ghost" href="https://inventory.oceanbox.cn" target="_blank" rel="noopener noreferrer">Live Inventory</a>
           </div>
           <form class="availability-form" id="availability-form">
-            <label for="zip-input" class="availability-label">Check Availability by ZIP</label>
+            <label for="availability-input" class="availability-label">Check Availability by City or ZIP</label>
             <div class="availability-row">
               <input
-                id="zip-input"
-                name="zip"
+                id="availability-input"
+                name="availability"
                 type="text"
-                inputmode="numeric"
-                autocomplete="postal-code"
-                pattern="[0-9A-Za-z\\- ]{3,10}"
-                placeholder="e.g. 77001"
+                inputmode="search"
+                autocomplete="off"
+                list="na-location-list"
+                maxlength="64"
+                placeholder="e.g. Houston, TX or 77001"
               />
               <button type="submit" class="btn btn-primary">Check Availability</button>
             </div>
+            <datalist id="na-location-list"></datalist>
           </form>
           <div class="kpis">
             <div class="kpi">
@@ -83,7 +85,7 @@
               <span class="kpi-label">+ Depot and Pickup Points</span>
             </div>
             <div class="kpi">
-              <span class="kpi-value" data-count="98">0</span>
+              <span class="kpi-value" data-count="99.99">0</span>
               <span class="kpi-label">% On-Time Release Performance</span>
             </div>
           </div>
