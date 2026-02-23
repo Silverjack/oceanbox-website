@@ -170,7 +170,6 @@ if (availabilityForm) {
     if (query) {
       const isZipLike =
         /^[0-9A-Za-z][0-9A-Za-z\- ]{2,10}$/.test(query) && /\d/.test(query);
-      targetUrl.searchParams.set("q", query);
       if (isZipLike) {
         targetUrl.searchParams.set("zip", query);
       } else {
