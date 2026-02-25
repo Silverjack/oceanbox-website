@@ -163,6 +163,11 @@ if (availabilityInput && availabilityDataList) {
       availabilityStatus.className = "availability-status";
     }
   });
+  availabilityInput.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    availabilityForm?.requestSubmit();
+  });
 }
 
 const setAvailabilityStatus = (text, type = "") => {
