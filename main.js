@@ -260,6 +260,47 @@ if (availabilityForm) {
   });
 }
 
+const revealContactBtn = document.querySelector("#reveal-contact-btn");
+const directContactLinks = document.querySelector("#direct-contact-links");
+const rollyEmailLink = document.querySelector("#rolly-email-link");
+const rollyWhatsappLink = document.querySelector("#rolly-whatsapp-link");
+
+const decodeChars = (charCodes = []) =>
+  charCodes.map((code) => String.fromCharCode(code)).join("");
+
+if (
+  revealContactBtn &&
+  directContactLinks &&
+  rollyEmailLink &&
+  rollyWhatsappLink
+) {
+  revealContactBtn.addEventListener(
+    "click",
+    () => {
+      const email = decodeChars([
+        82, 111, 108, 108, 121, 64, 111, 99, 101, 97, 110, 98, 111, 120, 46,
+        99, 110,
+      ]);
+      const whatsappDigits = decodeChars([
+        56, 54, 49, 51, 54, 57, 51, 48, 48, 52, 48, 50, 52,
+      ]);
+      const whatsappDisplay = `+${whatsappDigits.slice(0, 2)} ${whatsappDigits.slice(
+        2,
+        5
+      )} ${whatsappDigits.slice(5, 9)} ${whatsappDigits.slice(9)}`;
+      const whatsappUrl = `https://wa.me/${whatsappDigits}`;
+
+      rollyEmailLink.href = `mailto:${email}`;
+      rollyEmailLink.textContent = `Email: ${email}`;
+      rollyWhatsappLink.href = whatsappUrl;
+      rollyWhatsappLink.textContent = `WhatsApp: ${whatsappDisplay}`;
+      directContactLinks.hidden = false;
+      revealContactBtn.hidden = true;
+    },
+    { once: true }
+  );
+}
+
 const contactForm = document.querySelector("#contact-form");
 const formStatus = document.querySelector("#form-status");
 const turnstileWidget = document.querySelector("#turnstile-widget");

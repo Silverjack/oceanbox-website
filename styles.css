@@ -553,6 +553,68 @@ h2 {
   padding: 1.2rem;
 }
 
+.direct-contact {
+  margin-top: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid #d7e3f4;
+  border-radius: 12px;
+  background: #f8fbff;
+}
+
+.direct-contact-title {
+  margin: 0 0 0.2rem;
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #1a7f73;
+}
+
+.direct-contact-name {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0d1d3a;
+}
+
+.direct-contact-role {
+  margin: 0.2rem 0 0.65rem;
+  font-size: 0.88rem;
+  color: #4d6284;
+}
+
+.direct-contact-btn {
+  border: 1px solid #b5c8e4;
+  border-radius: 10px;
+  background: #fff;
+  color: #15335f;
+  font-weight: 700;
+  font-size: 0.86rem;
+  padding: 0.58rem 0.82rem;
+  cursor: pointer;
+}
+
+.direct-contact-btn:hover {
+  border-color: #8faed8;
+}
+
+.direct-contact-links {
+  margin-top: 0.7rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.direct-contact-links a {
+  font-size: 0.89rem;
+  color: #0c4ea4;
+  text-decoration: none;
+  word-break: break-word;
+}
+
+.direct-contact-links a:hover {
+  text-decoration: underline;
+}
+
 .contact-form {
   display: grid;
   gap: 0.8rem;
