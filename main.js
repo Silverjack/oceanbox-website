@@ -1,6 +1,7 @@
 const menuBtn = document.querySelector(".menu-btn");
 const topNav = document.querySelector(".top-nav");
 const captchaRuntime = document.querySelector("#captcha-runtime");
+const turnstileWidget = document.querySelector("#turnstile-widget");
 const isLocalDevHost = (() => {
   const host = window.location.hostname;
   return (
@@ -11,17 +12,60 @@ const isLocalDevHost = (() => {
   );
 })();
 
+const turnstileRetryState = {
+  attempts: 0,
+  maxAttempts: 3,
+  timer: null,
+};
+
+const hasTurnstileToken = () => {
+  const tokenEl = document.querySelector('input[name="cf-turnstile-response"]');
+  return Boolean(tokenEl?.value);
+};
+
+const clearTurnstileRetryTimer = () => {
+  if (!turnstileRetryState.timer) return;
+  window.clearTimeout(turnstileRetryState.timer);
+  turnstileRetryState.timer = null;
+};
+
+const scheduleTurnstileRetry = () => {
+  if (isLocalDevHost || !turnstileWidget || !window.turnstile) return;
+  if (turnstileRetryState.attempts >= turnstileRetryState.maxAttempts) return;
+
+  turnstileRetryState.attempts += 1;
+  const delayMs = 1000 + turnstileRetryState.attempts * 900;
+
+  clearTurnstileRetryTimer();
+  turnstileRetryState.timer = window.setTimeout(() => {
+    if (!window.turnstile || typeof window.turnstile.reset !== "function") return;
+    window.turnstile.reset();
+  }, delayMs);
+};
+
 window.onTurnstileSuccess = () => {
   if (!captchaRuntime) return;
+  turnstileRetryState.attempts = 0;
+  clearTurnstileRetryTimer();
   captchaRuntime.textContent = "Verification completed.";
   captchaRuntime.className = "captcha-runtime ok";
 };
 
 window.onTurnstileError = (errorCode) => {
   if (!captchaRuntime) return;
+  if (hasTurnstileToken()) {
+    window.onTurnstileSuccess();
+    return;
+  }
+
   const host = window.location.hostname || "(unknown-host)";
+  const willRetry = turnstileRetryState.attempts < turnstileRetryState.maxAttempts;
+  scheduleTurnstileRetry();
+
   captchaRuntime.textContent =
-    `Verification failed to load (code: ${errorCode || "unknown"}). Host: ${host}. Check Turnstile hostname allowlist or network access.`;
+    willRetry
+      ? `Verification failed to load (code: ${errorCode || "unknown"}). Retrying automatically... Host: ${host}.`
+      : `Verification failed to load (code: ${errorCode || "unknown"}). Host: ${host}. Please refresh, then check Turnstile hostname allowlist or network access if this continues.`;
   captchaRuntime.className = "captcha-runtime error";
 };
 
@@ -303,7 +347,6 @@ if (
 
 const contactForm = document.querySelector("#contact-form");
 const formStatus = document.querySelector("#form-status");
-const turnstileWidget = document.querySelector("#turnstile-widget");
 
 if (turnstileWidget && captchaRuntime) {
   if (isLocalDevHost) {
@@ -321,6 +364,7 @@ if (turnstileWidget && captchaRuntime) {
       captchaRuntime.textContent =
         `Verification box did not load on host ${host}. Please check your Turnstile hostname allowlist.`;
       captchaRuntime.className = "captcha-runtime error";
+      scheduleTurnstileRetry();
     }
   }, 3000);
 }
