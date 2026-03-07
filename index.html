@@ -14,7 +14,7 @@
       href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260307f" />
+    <link rel="stylesheet" href="styles.css?v=20260307g" />
     <script
       src="https://challenges.cloudflare.com/turnstile/v0/api.js"
       async
@@ -55,8 +55,22 @@
             faster, reduce repositioning costs, and keep cargo moving on schedule.
           </p>
           <div class="hero-actions">
-            <a class="btn btn-primary" href="#contact">Request a Quote</a>
-            <a class="btn btn-ghost" href="https://inventory.oceanbox.cn" target="_blank" rel="noopener noreferrer">Live Inventory</a>
+            <a class="btn btn-primary" href="#contact">
+              <span class="btn-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="M4.5 6.75h15a1.25 1.25 0 0 1 1.25 1.25v8a1.25 1.25 0 0 1-1.25 1.25H10l-4.5 3.5v-3.5h-1A1.25 1.25 0 0 1 3.25 16V8A1.25 1.25 0 0 1 4.5 6.75Z"></path>
+                </svg>
+              </span>
+              <span>Request a Quote</span>
+            </a>
+            <a class="btn btn-ghost" href="https://inventory.oceanbox.cn" target="_blank" rel="noopener noreferrer">
+              <span class="btn-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="M4.25 7.75h15.5v3.5H4.25v-3.5Zm0 5.5h15.5v3.5H4.25v-3.5Zm2.5-8h2v13h-2v-13Zm8.5 0h2v13h-2v-13Z"></path>
+                </svg>
+              </span>
+              <span>Live Inventory</span>
+            </a>
           </div>
           <form class="availability-form" id="availability-form">
             <label for="availability-input" class="availability-label">Check Availability by City or ZIP</label>
@@ -71,7 +85,15 @@
                 maxlength="64"
                 placeholder="e.g. Houston, TX or 77001"
               />
-              <button type="submit" class="btn btn-primary">Check Availability</button>
+              <button type="submit" class="btn btn-primary">
+                <span class="btn-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" focusable="false">
+                    <circle cx="10.5" cy="10.5" r="5.5"></circle>
+                    <path d="m15 15 5 5"></path>
+                  </svg>
+                </span>
+                <span>Check Availability</span>
+              </button>
             </div>
             <datalist id="na-location-list"></datalist>
             <p class="availability-status" id="availability-status" aria-live="polite"></p>
