@@ -122,7 +122,7 @@ a {
 
 .hero {
   position: relative;
-  min-height: 78vh;
+  min-height: 84vh;
   display: grid;
   align-items: center;
   overflow: hidden;
@@ -141,10 +141,10 @@ a {
   position: absolute;
   inset: 0;
   background: linear-gradient(
-    90deg,
-    rgba(6, 18, 41, 0.9) 0%,
-    rgba(6, 18, 41, 0.74) 45%,
-    rgba(6, 18, 41, 0.35) 100%
+    96deg,
+    rgba(6, 18, 41, 0.88) 0%,
+    rgba(6, 18, 41, 0.7) 48%,
+    rgba(6, 18, 41, 0.3) 100%
   );
 }
 
@@ -152,8 +152,10 @@ a {
   position: relative;
   z-index: 2;
   color: #eef5ff;
-  padding: 4.3rem 0 3.4rem;
-  max-width: 780px;
+  padding: 5.4rem 0 4.2rem;
+  max-width: 920px;
+  display: grid;
+  gap: 1.15rem;
 }
 
 .eyebrow {
@@ -174,8 +176,9 @@ h3 {
 }
 
 h1 {
-  font-size: clamp(2rem, 5vw, 4rem);
-  margin: 0.75rem 0 1.1rem;
+  font-size: clamp(2.25rem, 5.25vw, 4.6rem);
+  margin: 0;
+  max-width: 12.5ch;
 }
 
 h2 {
@@ -184,26 +187,33 @@ h2 {
 }
 
 .hero-copy {
-  font-size: clamp(1rem, 1.5vw, 1.2rem);
-  max-width: 680px;
+  margin: 0;
+  font-size: clamp(1.05rem, 1.55vw, 1.26rem);
+  max-width: 760px;
   color: #d8e6ff;
+  line-height: 1.58;
 }
 
 .hero-actions {
-  margin-top: 1.35rem;
+  margin-top: 0.1rem;
   display: flex;
-  gap: 0.65rem;
+  gap: 0.9rem;
   flex-wrap: wrap;
 }
 
 .availability-form {
-  margin-top: 0.75rem;
-  max-width: 700px;
+  margin-top: 0.15rem;
+  max-width: 860px;
+  padding: 0.95rem;
+  border: 1px solid rgba(231, 242, 255, 0.26);
+  border-radius: 14px;
+  background: rgba(9, 29, 61, 0.36);
+  backdrop-filter: blur(5px);
 }
 
 .availability-label {
   display: block;
-  margin-bottom: 0.45rem;
+  margin-bottom: 0.58rem;
   font-size: 0.82rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -213,7 +223,7 @@ h2 {
 
 .availability-row {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.72rem;
   align-items: center;
 }
 
@@ -230,14 +240,14 @@ h2 {
 }
 
 .availability-row .btn {
-  padding: 0.76rem 1.05rem;
+  padding: 0.85rem 1.2rem;
   font-size: 0.9rem;
   border-radius: 10px;
   white-space: nowrap;
 }
 
 .availability-status {
-  margin: 0.5rem 0 0;
+  margin: 0.62rem 0 0;
   min-height: 1.25rem;
   font-size: 0.88rem;
   font-weight: 600;
@@ -279,18 +289,18 @@ h2 {
 }
 
 .kpis {
-  margin-top: 1.05rem;
+  margin-top: 0.1rem;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.7rem;
-  max-width: 780px;
+  gap: 0.9rem;
+  max-width: 920px;
 }
 
 .kpi {
-  background: rgba(238, 245, 255, 0.1);
-  border: 1px solid rgba(238, 245, 255, 0.2);
-  border-radius: 12px;
-  padding: 0.65rem 0.82rem;
+  background: rgba(238, 245, 255, 0.13);
+  border: 1px solid rgba(238, 245, 255, 0.27);
+  border-radius: 14px;
+  padding: 0.9rem 1.02rem;
   min-width: 0;
 }
 
@@ -893,11 +903,24 @@ textarea:focus {
   }
 
   .hero {
-    min-height: 70vh;
+    min-height: 74vh;
   }
 
   .hero-content {
-    padding: 3.7rem 0 2.7rem;
+    padding: 4rem 0 3rem;
+    gap: 0.95rem;
+  }
+
+  .hero-copy {
+    max-width: 100%;
+  }
+
+  .hero-actions {
+    gap: 0.62rem;
+  }
+
+  .availability-form {
+    padding: 0.74rem;
   }
 
   .availability-row {
