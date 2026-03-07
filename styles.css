@@ -86,14 +86,10 @@ a {
   display: flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.35rem;
-  border: 1px solid #d9e4f5;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.8);
+  padding: 0;
 }
 
 .top-nav > a:not(.cta-link) {
-  position: relative;
   display: inline-flex;
   align-items: center;
   padding: 0.52rem 0.78rem;
@@ -104,27 +100,10 @@ a {
   transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
 
-.top-nav > a:not(.cta-link)::after {
-  content: "";
-  position: absolute;
-  left: 0.78rem;
-  right: 0.78rem;
-  bottom: 0.36rem;
-  height: 2px;
-  background: linear-gradient(90deg, #0e5fcb, #00a991);
-  transform: scaleX(0);
-  transform-origin: center;
-  transition: transform 0.2s ease;
-}
-
 .top-nav > a:not(.cta-link):hover {
   background: rgba(14, 95, 203, 0.08);
   color: #0f4ea6;
   transform: translateY(-1px);
-}
-
-.top-nav > a:not(.cta-link):hover::after {
-  transform: scaleX(1);
 }
 
 .cta-link {
@@ -971,12 +950,6 @@ textarea:focus {
   .top-nav > a:not(.cta-link) {
     width: 100%;
     padding: 0.62rem 0.78rem;
-  }
-
-  .top-nav > a:not(.cta-link)::after {
-    left: 0.78rem;
-    right: calc(100% - 110px);
-    bottom: 0.28rem;
   }
 
   .cta-link {
