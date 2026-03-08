@@ -1,0 +1,108 @@
+.floating-contact-menu {
+  --floating-y: 62vh;
+  position: fixed;
+  right: clamp(10px, 1.2vw, 20px);
+  top: var(--floating-y);
+  transform: translateY(-50%);
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: auto;
+}
+
+.floating-contact-menu__item {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  border: 1px solid rgba(206, 220, 243, 0.72);
+  background: rgba(255, 255, 255, 0.93);
+  box-shadow: 0 12px 26px rgba(8, 28, 58, 0.2);
+  color: #234f8f;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, color 0.22s ease,
+    background 0.22s ease, border-color 0.22s ease;
+}
+
+.floating-contact-menu__item svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+
+.floating-contact-menu__item::before {
+  content: attr(data-tip);
+  position: absolute;
+  right: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%) translateX(8px);
+  opacity: 0;
+  white-space: nowrap;
+  padding: 6px 10px;
+  border-radius: 9px;
+  background: rgba(10, 33, 68, 0.95);
+  color: #e8f2ff;
+  font-size: 12px;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.floating-contact-menu__item::after {
+  content: "";
+  position: absolute;
+  right: calc(100% + 3px);
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  background: rgba(10, 33, 68, 0.95);
+  transform: translateY(-50%) rotate(45deg);
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+.floating-contact-menu__item:hover,
+.floating-contact-menu__item:focus-visible {
+  color: #ffffff;
+  background: linear-gradient(135deg, #0f60cb, #0a73ef);
+  border-color: rgba(23, 124, 242, 0.8);
+  box-shadow: 0 15px 30px rgba(10, 83, 178, 0.32);
+  transform: translateY(-2px);
+}
+
+.floating-contact-menu__item:hover::before,
+.floating-contact-menu__item:focus-visible::before {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
+.floating-contact-menu__item:hover::after,
+.floating-contact-menu__item:focus-visible::after {
+  opacity: 1;
+}
+
+.floating-contact-menu__item:focus-visible {
+  outline: 2px solid rgba(116, 189, 255, 0.95);
+  outline-offset: 2px;
+}
+
+@media (max-width: 900px) {
+  .floating-contact-menu {
+    right: 10px;
+  }
+
+  .floating-contact-menu__item {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+
+  .floating-contact-menu__item::before,
+  .floating-contact-menu__item::after {
+    display: none;
+  }
+}
