@@ -13,24 +13,48 @@
 
 .floating-contact-menu__item {
   position: relative;
-  width: 48px;
-  height: 48px;
+  width: 54px;
+  height: 54px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 14px;
-  border: 1px solid rgba(206, 220, 243, 0.72);
-  background: rgba(255, 255, 255, 0.93);
-  box-shadow: 0 12px 26px rgba(8, 28, 58, 0.2);
-  color: #234f8f;
+  border-radius: 16px;
+  border: 1px solid rgba(206, 220, 243, 0.5);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 14px 30px rgba(8, 28, 58, 0.22);
+  color: #ffffff;
   transition: transform 0.22s ease, box-shadow 0.22s ease, color 0.22s ease,
     background 0.22s ease, border-color 0.22s ease;
 }
 
+.floating-contact-menu__item::selection {
+  background: transparent;
+}
+
 .floating-contact-menu__item svg {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   fill: currentColor;
+}
+
+.floating-contact-menu__item--email {
+  background: linear-gradient(140deg, #0f65d9, #0a84ff);
+  border-color: rgba(119, 185, 255, 0.55);
+}
+
+.floating-contact-menu__item--whatsapp {
+  background: linear-gradient(140deg, #12a84f, #1fcb68);
+  border-color: rgba(129, 232, 166, 0.55);
+}
+
+.floating-contact-menu__item--email,
+.floating-contact-menu__item--whatsapp {
+  box-shadow: 0 15px 32px rgba(7, 34, 72, 0.32);
+  animation: floating-contact-breathe 2.2s ease-in-out infinite;
+}
+
+.floating-contact-menu__item--whatsapp {
+  animation-delay: 0.35s;
 }
 
 .floating-contact-menu__item::before {
@@ -68,10 +92,10 @@
 .floating-contact-menu__item:hover,
 .floating-contact-menu__item:focus-visible {
   color: #ffffff;
-  background: linear-gradient(135deg, #0f60cb, #0a73ef);
-  border-color: rgba(23, 124, 242, 0.8);
-  box-shadow: 0 15px 30px rgba(10, 83, 178, 0.32);
-  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.65);
+  box-shadow: 0 18px 36px rgba(8, 41, 86, 0.36);
+  transform: translateY(-3px) scale(1.03);
+  filter: saturate(1.09) brightness(1.03);
 }
 
 .floating-contact-menu__item:hover::before,
@@ -90,14 +114,24 @@
   outline-offset: 2px;
 }
 
+@keyframes floating-contact-breathe {
+  0%,
+  100% {
+    box-shadow: 0 14px 30px rgba(7, 34, 72, 0.29);
+  }
+  50% {
+    box-shadow: 0 18px 36px rgba(7, 34, 72, 0.44);
+  }
+}
+
 @media (max-width: 900px) {
   .floating-contact-menu {
     right: 10px;
   }
 
   .floating-contact-menu__item {
-    width: 44px;
-    height: 44px;
+    width: 48px;
+    height: 48px;
     border-radius: 12px;
   }
 
