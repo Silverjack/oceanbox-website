@@ -30,6 +30,7 @@
 
     let targetY = window.innerHeight * 0.62;
     let currentY = targetY;
+    let lockTracking = false;
 
     const getBounds = () => ({
       min: 90,
@@ -41,6 +42,13 @@
     };
 
     const onMove = (event) => {
+      if (lockTracking) return;
+
+      const rect = root.getBoundingClientRect();
+      const nearMenuX = event.clientX >= rect.left - 56;
+      const nearMenuY = event.clientY >= rect.top - 24 && event.clientY <= rect.bottom + 24;
+      if (nearMenuX && nearMenuY) return;
+
       const { min, max } = getBounds();
       targetY = clamp(event.clientY, min, max);
     };
@@ -54,15 +62,41 @@
       if (reduceMotion || !pointerFine) {
         currentY = targetY;
       } else {
-        currentY += (targetY - currentY) * 0.16;
+        currentY += (targetY - currentY) * 0.2;
       }
       applyPosition(currentY);
       window.requestAnimationFrame(animate);
     };
 
+    const onEnter = () => {
+      lockTracking = true;
+      targetY = currentY;
+    };
+
+    const onLeave = (event) => {
+      lockTracking = false;
+      if (!pointerFine) return;
+      const { min, max } = getBounds();
+      targetY = clamp(event.clientY, min, max);
+    };
+
+    const onFocusIn = () => {
+      lockTracking = true;
+      targetY = currentY;
+    };
+
+    const onFocusOut = () => {
+      if (root.contains(document.activeElement)) return;
+      lockTracking = false;
+    };
+
     if (pointerFine) {
       window.addEventListener("mousemove", onMove, { passive: true });
+      root.addEventListener("mouseenter", onEnter);
+      root.addEventListener("mouseleave", onLeave);
     }
+    root.addEventListener("focusin", onFocusIn);
+    root.addEventListener("focusout", onFocusOut);
     window.addEventListener("resize", onResize, { passive: true });
     onResize();
     applyPosition(currentY);
