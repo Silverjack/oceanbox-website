@@ -751,6 +751,40 @@ h2 {
   color: #b01a2c;
 }
 
+.policy-links {
+  margin-top: 0.4rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: 12px;
+  background: #f4f8ff;
+  border: 1px solid #d6e2f2;
+}
+
+.policy-links-title {
+  margin: 0 0 0.18rem;
+  font-weight: 800;
+  font-size: 0.84rem;
+  color: #16345f;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.policy-links-copy {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: #4e6486;
+}
+
+.policy-links a {
+  color: #0c4ea4;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.policy-links a:hover {
+  text-decoration: underline;
+}
+
 input,
 textarea {
   border: 1px solid #cdd9eb;
@@ -784,7 +818,7 @@ textarea:focus {
 
 .footer-main {
   display: grid;
-  grid-template-columns: 1.35fr 1fr 1fr;
+  grid-template-columns: 1.35fr 1fr 1fr 1fr;
   gap: 1.2rem;
   padding: 1.4rem 0 1rem;
   color: #dbe9ff;
@@ -866,6 +900,68 @@ textarea:focus {
 
 .footer-bottom p {
   margin: 0;
+}
+
+.footer-bottom a {
+  color: #d7e8ff;
+}
+
+.legal-page {
+  background:
+    radial-gradient(circle at top left, rgba(154, 200, 255, 0.18), transparent 28%),
+    linear-gradient(180deg, #f6f9ff 0%, #edf3fb 100%);
+}
+
+.legal-nav {
+  display: flex;
+}
+
+.legal-shell {
+  padding: 7.4rem 0 3rem;
+}
+
+.legal-article {
+  max-width: 880px;
+  padding: 1.5rem;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(186, 206, 232, 0.72);
+  box-shadow: 0 24px 60px rgba(18, 46, 92, 0.08);
+}
+
+.legal-header {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #dde6f3;
+}
+
+.legal-header h1 {
+  margin-bottom: 0.45rem;
+}
+
+.legal-header p:last-child {
+  margin-bottom: 0;
+}
+
+.legal-meta {
+  margin: 0 0 0.8rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #4f678d;
+}
+
+.legal-section {
+  padding-top: 1.15rem;
+}
+
+.legal-section h2 {
+  margin: 0 0 0.42rem;
+  font-size: 1.03rem;
+}
+
+.legal-section p {
+  margin: 0;
+  color: #425878;
+  line-height: 1.72;
 }
 
 .reveal {
@@ -962,6 +1058,29 @@ textarea:focus {
     display: flex;
   }
 
+  .legal-nav {
+    position: static;
+    right: auto;
+    left: auto;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    gap: 0.35rem;
+  }
+
+  .legal-nav > a:not(.cta-link) {
+    width: auto;
+    padding: 0.52rem 0.78rem;
+  }
+
+  .legal-nav .cta-link {
+    width: auto;
+    margin-top: 0;
+  }
+
   .hero {
     min-height: 74vh;
   }
@@ -1026,5 +1145,14 @@ textarea:focus {
   .footer-bottom {
     padding: 0.72rem 0 1rem;
     font-size: 0.84rem;
+  }
+
+  .legal-shell {
+    padding: 6.8rem 0 2rem;
+  }
+
+  .legal-article {
+    padding: 1.05rem;
+    border-radius: 18px;
   }
 }
