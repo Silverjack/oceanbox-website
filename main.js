@@ -130,6 +130,35 @@ const runCount = (el) => {
   requestAnimationFrame(frame);
 };
 
+const refreshPublishedInventoryStats = async () => {
+  try {
+    const response = await fetch(
+      "https://inventory.oceanbox.cn/inventory-stats.json",
+      { cache: "no-store" }
+    );
+    if (!response.ok) return;
+
+    const stats = await response.json();
+    ["container_count", "location_count"].forEach((key) => {
+      const value = Number(stats[key]);
+      const counter = document.querySelector(`[data-inventory-stat="${key}"]`);
+      if (!counter || !Number.isFinite(value) || value < 0) return;
+      counter.setAttribute("data-count", String(Math.round(value)));
+      runCount(counter);
+    });
+
+    const marketCount = Number(stats.location_count);
+    const marketCountEl = document.querySelector("[data-inventory-market-count]");
+    if (marketCountEl && Number.isFinite(marketCount) && marketCount >= 0) {
+      marketCountEl.textContent = formatCount(Math.round(marketCount));
+    }
+  } catch (_error) {
+    // Keep the last deployed fallback values when the inventory site is unavailable.
+  }
+};
+
+refreshPublishedInventoryStats();
+
 const countObserver = new IntersectionObserver(
   (entries) => {
     entries.forEach((entry) => {
