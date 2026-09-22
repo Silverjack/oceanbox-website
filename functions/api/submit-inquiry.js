@@ -134,15 +134,33 @@ export async function onRequestPost(context) {
   const cookie = request.headers.get("Cookie") || "";
   const hutk = getCookieValue(cookie, "hubspotutk");
 
+  const cleanContextUrl = raw => {
+    try {
+      const url = new URL(String(raw || "").slice(0, 2000));
+      if (!["https:", "http:"].includes(url.protocol)) return "";
+      const clean = new URL(url.origin + url.pathname);
+      ["utm_source", "utm_medium", "utm_campaign"].forEach(key => {
+        const value = url.searchParams.get(key);
+        if (value) clean.searchParams.set(key, value.slice(0, 120));
+      });
+      return clean.toString().slice(0, 700);
+    } catch { return ""; }
+  };
+  const inquiryId = crypto.randomUUID();
+  const landing = cleanContextUrl(formData.get("landing_page")) || cleanContextUrl(referer);
+  const sourceReferrer = cleanContextUrl(formData.get("source_referrer"));
+  // Keep source evidence in the existing message field: no new HubSpot property dependency.
+  const attributedRequirement = requirement + "\n\n[Website inquiry " + inquiryId + "]\nLanding page: " + (landing || "unknown") + "\nReferrer (visitor supplied): " + (sourceReferrer || "unknown");
+
   const submitPayload = {
     submittedAt: Date.now().toString(),
     fields: [
       { name: fieldEmail, value: email },
       { name: fieldCompany, value: company },
-      { name: fieldRequirement, value: requirement },
+      { name: fieldRequirement, value: attributedRequirement },
     ],
     context: {
-      pageUri: referer || origin || `https://${host}/`,
+      pageUri: cleanContextUrl(referer) || origin || `https://${host}/`,
       pageName: "Oceanbox Inquiry Form",
       ...(hutk ? { hutk } : {}),
     },
@@ -181,5 +199,6 @@ export async function onRequestPost(context) {
   return jsonResponse(200, {
     ok: true,
     message: "Thanks, your inquiry has been submitted successfully.",
+    inquiry_id: inquiryId,
   });
 }

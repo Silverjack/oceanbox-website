@@ -965,12 +965,17 @@ textarea:focus {
 }
 
 .reveal {
+  opacity: 1;
+  transform: none;
+}
+
+.reveal.reveal-ready {
   opacity: 0;
   transform: translateY(16px);
   transition: opacity 0.55s ease, transform 0.55s ease;
 }
 
-.reveal.in {
+.reveal.reveal-ready.in {
   opacity: 1;
   transform: translateY(0);
 }
@@ -1156,3 +1161,7 @@ textarea:focus {
     border-radius: 18px;
   }
 }
+
+/* Keep the existing city lookup row aligned at all breakpoints. */
+.availability-row input, .availability-row .btn { height: 48px; min-height: 48px; box-sizing: border-box; }
+.availability-row .btn { display: inline-flex; align-items: center; justify-content: center; }

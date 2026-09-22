@@ -97,7 +97,10 @@ const revealObserver = new IntersectionObserver(
   { threshold: 0.15 }
 );
 
-revealItems.forEach((item) => revealObserver.observe(item));
+revealItems.forEach((item) => {
+  item.classList.add("reveal-ready");
+  revealObserver.observe(item);
+});
 
 const countItems = document.querySelectorAll("[data-count]");
 
@@ -116,7 +119,8 @@ const runCount = (el) => {
 
   const frame = (now) => {
     const progress = Math.min((now - start) / duration, 1);
-    let current = progress * target;
+    const initial = Number(el.textContent.replace(/,/g, ""));
+    let current = Number.isFinite(initial) ? initial + progress * (target - initial) : target;
     if (decimals === 0) current = Math.floor(current);
     else current = Number(current.toFixed(decimals));
     el.textContent = formatCount(current, decimals);
@@ -313,6 +317,8 @@ if (availabilityForm) {
       }
 
       const targetUrl = String(checkJson.url || "");
+      const verifiedTarget = new URL(targetUrl, window.location.origin);
+      if (verifiedTarget.origin !== "https://inventory.oceanbox.cn") throw new Error("Invalid inventory destination.");
       if (!targetUrl) {
         throw new Error("Inventory target URL is missing.");
       }
@@ -374,6 +380,25 @@ if (
   );
 }
 
+const cleanSourceUrl = (raw) => {
+  try {
+    const url = new URL(raw);
+    if (!["http:", "https:"].includes(url.protocol)) return "";
+    const clean = new URL(url.origin + url.pathname);
+    ["utm_source", "utm_medium", "utm_campaign"].forEach(key => {
+      const value = url.searchParams.get(key);
+      if (value) clean.searchParams.set(key, value.slice(0, 120));
+    });
+    return clean.toString().slice(0, 700);
+  } catch { return ""; }
+};
+let inquiryContext = {landing_page: cleanSourceUrl(window.location.href), referrer: cleanSourceUrl(document.referrer)};
+try {
+  const saved = JSON.parse(sessionStorage.getItem("ob_inquiry_source") || "null");
+  if (saved && typeof saved === "object") inquiryContext = {landing_page: cleanSourceUrl(saved.landing_page), referrer: cleanSourceUrl(saved.referrer)};
+  else sessionStorage.setItem("ob_inquiry_source", JSON.stringify(inquiryContext));
+} catch (_) {}
+
 const contactForm = document.querySelector("#contact-form");
 const formStatus = document.querySelector("#form-status");
 
@@ -408,6 +433,8 @@ if (contactForm && formStatus) {
     if (submitBtn) submitBtn.disabled = true;
 
     const formData = new FormData(contactForm);
+    formData.set("landing_page", inquiryContext.landing_page);
+    formData.set("source_referrer", inquiryContext.referrer);
     const emailValue = String(formData.get("email") || "").trim();
     const turnstileToken = formData.get("cf-turnstile-response");
     const siteKey = turnstileWidget?.getAttribute("data-sitekey") || "";
