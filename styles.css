@@ -1168,6 +1168,9 @@ textarea:focus {
 
 /* Keep mobile contact shortcuts away from the page heading and copy. */
 @media (max-width: 680px) {
-  [data-floating-contact] { top: auto !important; bottom: 12px; right: 12px; transform: none; flex-direction: row; }
+  .floating-contact-menu[data-floating-contact] { top: auto !important; bottom: 12px; right: 12px; transform: none; flex-direction: row; }
   .site-footer { padding-bottom: 90px; }
 }
+
+/* Anchor destinations clear the sticky header after navigation. */
+main section[id] { scroll-margin-top: 120px; }
