@@ -1165,3 +1165,9 @@ textarea:focus {
 /* Keep the existing city lookup row aligned at all breakpoints. */
 .availability-row input, .availability-row .btn { height: 48px; min-height: 48px; box-sizing: border-box; }
 .availability-row .btn { display: inline-flex; align-items: center; justify-content: center; }
+
+/* Keep mobile contact shortcuts away from the page heading and copy. */
+@media (max-width: 680px) {
+  [data-floating-contact] { top: auto !important; bottom: 12px; right: 12px; transform: none; flex-direction: row; }
+  .site-footer { padding-bottom: 90px; }
+}
