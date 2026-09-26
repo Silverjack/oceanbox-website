@@ -1174,3 +1174,12 @@ textarea:focus {
 
 /* Anchor destinations clear the sticky header after navigation. */
 main section[id] { scroll-margin-top: 120px; }
+
+/* Keep resource-page navigation readable on narrow screens. */
+@media (max-width: 680px) {
+  .legal-page .nav-wrap { flex-wrap: wrap; gap: 8px; padding-top: 10px; padding-bottom: 10px; }
+  .legal-page .brand-logo { width: 150px; }
+  .legal-page .legal-nav { width: 100%; justify-content: space-between; gap: 6px; }
+  .legal-page .legal-nav > a { display: inline-flex; align-items: center; justify-content: center; height: 40px; padding: 0 10px; margin: 0; font-size: 13px; white-space: nowrap; }
+  .legal-page .legal-shell { padding-top: 9rem; }
+}
