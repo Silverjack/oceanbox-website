@@ -1,0 +1,7 @@
+# Keep indexed legacy pages connected to their current equivalents.
+/pages/about-us-1 /about-oceanbox 301
+/pages/about-us-1/ /about-oceanbox 301
+/pages/contact-us-9 /#contact 301
+/pages/contact-us-9/ /#contact 301
+/inquiry.html /#contact 301
+/inquiry /#contact 301
