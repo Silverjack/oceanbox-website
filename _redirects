@@ -12,3 +12,9 @@
 /feedback.html /#contact 301
 /collections/houston /shipping-containers-houston 301
 /collections/houston/ /shipping-containers-houston 301
+/collections/chicago /shipping-containers-chicago 301
+/collections/chicago/ /shipping-containers-chicago 301
+/collections/savannah https://inventory.oceanbox.cn/?location=savannah&view=list 301
+/collections/savannah/ https://inventory.oceanbox.cn/?location=savannah&view=list 301
+/collections/salt-lake-city https://inventory.oceanbox.cn/?location=salt%20lake%20city&view=list 301
+/collections/salt-lake-city/ https://inventory.oceanbox.cn/?location=salt%20lake%20city&view=list 301
