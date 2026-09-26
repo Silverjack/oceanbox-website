@@ -83,6 +83,15 @@ if (menuBtn && topNav) {
   });
 }
 
+// Close the mobile panel after navigation so the destination remains readable.
+if (menuBtn && topNav) {
+  topNav.addEventListener("click", (event) => {
+    if (!event.target.closest("a")) return;
+    menuBtn.setAttribute("aria-expanded", "false");
+    topNav.classList.remove("open");
+  });
+}
+
 const revealItems = document.querySelectorAll(".reveal");
 
 const revealObserver = new IntersectionObserver(
